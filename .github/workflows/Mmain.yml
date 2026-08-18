@@ -1,0 +1,55 @@
+name: Compilar projeto iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Extrair projeto
+        shell: bash
+        run: |
+          set -e
+          mkdir -p ./projeto
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Nenhum arquivo ZIP foi encontrado na raiz do repositório."
+            exit 1
+          fi
+          unzip -q "$ZIP_FILE" -d ./projeto
+
+      - name: Localizar projeto Xcode
+        shell: bash
+        run: |
+          set -e
+          PROJECT=$(find ./projeto -name '*.xcodeproj' -type d | head -1)
+          if [ -z "$PROJECT" ]; then
+            echo "Nenhum arquivo .xcodeproj foi encontrado depois da extração."
+            find ./projeto -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+          echo "Projeto encontrado: $PROJECT"
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+
+      - name: Listar schemes
+        shell: bash
+        run: |
+          xcodebuild -list -project "$PROJECT"
+
+      - name: Compilar projeto
+        shell: bash
+        run: |
+          set -e
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme 3105 \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
