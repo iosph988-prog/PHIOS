@@ -1,4 +1,4 @@
-name: Build Theos
+name: Build Theos 
 
 on:
   workflow_dispatch:
