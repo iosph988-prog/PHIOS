@@ -1,4 +1,4 @@
-name: Build Theos 
+name: Build Theos
 
 on:
   workflow_dispatch:
@@ -14,6 +14,12 @@ jobs:
       - name: Baixar repositório
         uses: actions/checkout@v4
 
+      - name: Selecionar Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> $GITHUB_ENV
+          echo "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin" >> $GITHUB_PATH
+
       - name: Preparar projeto
         run: |
           unzip -q Prj.zip -d project
@@ -22,7 +28,7 @@ jobs:
       - name: Instalar Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
-          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
       - name: Compilar
         run: |
