@@ -1,4 +1,4 @@
-name: Build IPA
+name: PH IOS IPA
 
 on:
   workflow_dispatch:
@@ -19,28 +19,51 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Encontrar projeto Xcode
+      - name: Extrair projeto ZIP
         run: |
-          echo "Arquivos do projeto:"
-          find . -name "*.xcodeproj" -print
+          set -e
 
-          PROJECT=$(find . -name "*.xcodeproj" -print -quit)
+          ZIP="Nubank-Run16-DreamXiter-Project.zip"
 
-          if [ -z "$PROJECT" ]; then
-            echo "ERRO: nenhum .xcodeproj encontrado"
+          if [ ! -f "$ZIP" ]; then
+            echo "ERRO: $ZIP não encontrado"
+            ls -lah
             exit 1
           fi
 
-          echo "Projeto encontrado: $PROJECT"
+          rm -rf extracted
+          mkdir extracted
+          unzip -q "$ZIP" -d extracted
+
+          echo "Projeto extraído:"
+          find extracted -name "*.xcodeproj" -print
+
+      - name: Encontrar projeto e scheme
+        run: |
+          set -e
+
+          PROJECT=$(find extracted -name "ThreeOneOSFive.xcodeproj" -print -quit)
+
+          if [ -z "$PROJECT" ]; then
+            echo "ERRO: ThreeOneOSFive.xcodeproj não encontrado"
+            find extracted -maxdepth 5 -type f | head -100
+            exit 1
+          fi
+
           echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
-      - name: Verificar projeto
-        run: |
-          echo "Projeto: $PROJECT"
+          echo "Projetos encontrados:"
+          find extracted -name "*.xcodeproj" -print
+
+          echo "Schemes:"
           xcodebuild -list -project "$PROJECT"
 
-      - name: Compilar
+      - name: Compilar IPA
         run: |
+          set -e
+
+          rm -rf build Payload 3105.ipa
+
           xcodebuild \
             -project "$PROJECT" \
             -scheme "3105" \
@@ -53,22 +76,29 @@ jobs:
 
       - name: Criar IPA
         run: |
+          set -e
+
           mkdir -p Payload
 
-          APP=$(find build/Build/Products -name "*.app" -type d -print -quit)
+          APP=$(find build/Build/Products -name "3105.app" -type d -print -quit)
 
           if [ -z "$APP" ]; then
-            echo "ERRO: nenhum .app foi gerado"
+            echo "ERRO: 3105.app não foi gerado"
+            find build/Build/Products -maxdepth 3 -type d -print
             exit 1
           fi
 
-          echo "App encontrado: $APP"
-          cp -R "$APP" Payload/
+          echo "APP encontrado: $APP"
 
-          zip -r 3105.ipa Payload
+          cp -R "$APP" Payload/3105.app
 
-      - name: Enviar IPA
+          zip -qry 3105.ipa Payload
+
+          ls -lh 3105.ipa
+
+      - name: Publicar IPA
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-IPA
+          name: PHIOS-3105-IPA
           path: 3105.ipa
+          if-no-files-found: error
