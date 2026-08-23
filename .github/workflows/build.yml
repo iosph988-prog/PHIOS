@@ -1,0 +1,39 @@
+name: Build Theos
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar projeto
+        run: |
+          unzip -q Prj.zip -d project
+          find project -name Makefile -print
+
+      - name: Instalar Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+
+      - name: Compilar
+        run: |
+          MAKEFILE=$(find project -name Makefile | head -n 1)
+          cd "$(dirname "$MAKEFILE")"
+          make package FINALPACKAGE=1
+
+      - name: Publicar pacote
+        uses: actions/upload-artifact@v4
+        with:
+          name: Theos-Build
+          path: |
+            project/**/*.deb
+            project/**/*.dylib
