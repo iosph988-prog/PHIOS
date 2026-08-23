@@ -1,0 +1,44 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Selecionar Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Compilar
+        run: |
+          xcodebuild \
+            -project "3105-1.1.1/ThreeOneOSFive.xcodeproj" \
+            -scheme "3105" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build
+
+      - name: Criar Payload
+        run: |
+          mkdir -p Payload
+          cp -R "build/Build/Products/Release-iphoneos/3105.app" Payload/
+          zip -r 3105.ipa Payload
+
+      - name: Enviar IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3105-IPA
+          path: 3105.ipa
