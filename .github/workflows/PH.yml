@@ -1,0 +1,78 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Xcode project
+        shell: bash
+        run: |
+          set -e
+
+          if [ -f "ThreeOneOSFive.xcodeproj.project.pbxproj" ]; then
+            mkdir -p "ThreeOneOSFive.xcodeproj"
+            mv "ThreeOneOSFive.xcodeproj.project.pbxproj" \
+               "ThreeOneOSFive.xcodeproj/project.pbxproj"
+          fi
+
+          echo "Project:"
+          ls -la
+          echo "Xcode project:"
+          ls -la "ThreeOneOSFive.xcodeproj"
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+
+      - name: Build archive
+        run: |
+          set -o pipefail
+
+          xcodebuild \
+            -project "ThreeOneOSFive.xcodeproj" \
+            -scheme "3105" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath "$PWD/build/ThreeOneOSFive.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive | tee build.log
+
+      - name: Create unsigned IPA
+        run: |
+          set -e
+
+          APP_PATH=$(find "build/ThreeOneOSFive.xcarchive/Products/Applications" \
+            -maxdepth 1 -name "*.app" -type d | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "APP não encontrada."
+            exit 1
+          fi
+
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+
+          cd build
+          zip -r ThreeOneOSFive-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThreeOneOSFive-IPA
+          path: build/ThreeOneOSFive-unsigned.ipa
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
