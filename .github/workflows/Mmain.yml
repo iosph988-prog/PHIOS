@@ -1,55 +1,41 @@
-name: Compilar projeto iOS
+- name: Preparar projeto
+  shell: bash
+  run: |
+    set -euo pipefail
 
-on:
-  workflow_dispatch:
+    PKG="$(find "$GITHUB_WORKSPACE" -maxdepth 2 \
+      -type f -name 'PH_XITER_nubank_logs_names_overlay_v3.tar.gz' \
+      | head -n 1)"
 
-jobs:
-  build:
-    runs-on: macos-14
+    if [ -z "$PKG" ]; then
+      echo "ERRO: pacote PH_XITER não encontrado."
+      exit 1
+    fi
 
-    steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
+    echo "Pacote encontrado:"
+    echo "$PKG"
 
-      - name: Extrair projeto
-        shell: bash
-        run: |
-          set -e
-          mkdir -p ./projeto
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -1)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Nenhum arquivo ZIP foi encontrado na raiz do repositório."
-            exit 1
-          fi
-          unzip -q "$ZIP_FILE" -d ./projeto
+    rm -rf source
+    mkdir -p source
 
-      - name: Localizar projeto Xcode
-        shell: bash
-        run: |
-          set -e
-          PROJECT=$(find ./projeto -name '*.xcodeproj' -type d | head -1)
-          if [ -z "$PROJECT" ]; then
-            echo "Nenhum arquivo .xcodeproj foi encontrado depois da extração."
-            find ./projeto -maxdepth 4 -type f | head -100
-            exit 1
-          fi
-          echo "Projeto encontrado: $PROJECT"
-          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+    tar -xzf "$PKG" -C source
 
-      - name: Listar schemes
-        shell: bash
-        run: |
-          xcodebuild -list -project "$PROJECT"
+    echo "Conteúdo extraído:"
+    find source -maxdepth 4 -print
 
-      - name: Compilar projeto
-        shell: bash
-        run: |
-          set -e
-          xcodebuild \
-            -project "$PROJECT" \
-            -scheme 3105 \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
+    PROJECT_DIR="source/ThreeOneOSFive"
+
+    if [ ! -d "$PROJECT_DIR" ]; then
+      echo "ERRO: $PROJECT_DIR não encontrado."
+      exit 1
+    fi
+
+    # Corrige o nome do projeto Xcode
+    if [ -f "source/ThreeOneOSFive.xcodeproj.project.pbxproj" ]; then
+      mkdir -p "source/ThreeOneOSFive.xcodeproj"
+      mv "source/ThreeOneOSFive.xcodeproj.project.pbxproj" \
+         "source/ThreeOneOSFive.xcodeproj/project.pbxproj"
+    fi
+
+    echo "Projeto preparado:"
+    find source -maxdepth 3 -print
