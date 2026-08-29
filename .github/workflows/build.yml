@@ -29,6 +29,8 @@ jobs:
           test -n "$PROJECT_DIR" || { echo "ERRO: Makefile não encontrado"; find extracted -maxdepth 3 -type f; exit 1; }
           test -f "$PROJECT_DIR/LicenseGate.mm" || { echo "ERRO: LicenseGate.mm não encontrado"; exit 1; }
           test -f "$PROJECT_DIR/Esp/LoadView.mm" || { echo "ERRO: LoadView.mm não encontrado"; exit 1; }
+          sed -i '105s/});/}];/' "$PROJECT_DIR/Esp/LoadView.mm"
+          echo "Patch de sintaxe aplicado em LoadView.mm"
           echo "Projeto usado: $ZIP"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
       - name: Build rootless package
