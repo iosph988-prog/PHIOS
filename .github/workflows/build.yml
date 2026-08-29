@@ -1,147 +1,56 @@
 name: Build Theos tweak
 
-
-
 on:
-
   workflow_dispatch:
-  
-
 
 permissions:
-
   contents: read
-  
-
 
 jobs:
-
   build:
-  
     runs-on: ubuntu-latest
-    
-
 
     steps:
-    
       - name: Checkout
-      
         uses: actions/checkout@v4
-        
-
 
       - name: Install Theos
-      
         uses: Randomblock1/theos-action@v1
-        
         with:
-        
           theos-dir: ${{ runner.temp }}/theos
-          
-
 
       - name: Extract and patch Theos project
-      
         shell: bash
-        
         run: |
-        
           set -euo pipefail
-          
           ZIP="variosidiomasemalplamenu-api-integrada.zip"
-          
           test -f "$ZIP" || { echo "ERRO: ZIP não encontrado"; ls -lah; exit 1; }
-          
           rm -rf extracted
-          
           mkdir -p extracted
-          
           unzip -q "$ZIP" -d extracted
-          
           PROJECT_DIR="$(find extracted -name Makefile -type f -printf '%h\n' | head -n 1)"
-          
           test -n "$PROJECT_DIR" || { echo "ERRO: Makefile não encontrado"; exit 1; }
-          
           LOADVIEW="$PROJECT_DIR/Esp/LoadView.mm"
-          
           test -f "$LOADVIEW" || { echo "ERRO: LoadView.mm não encontrado"; exit 1; }
-          
           sed -i '106s/});/}];/' "$LOADVIEW"
-          
+          sed -i '/^[[:space:]]*pthread_t hacks;[[:space:]]*$/d; /^[[:space:]]*pthread_create(&hacks, NULL, hack_thread, NULL);[[:space:]]*$/d' "$LOADVIEW"
+          echo "Patch aplicado em $LOADVIEW"
+          nl -ba "$LOADVIEW" | sed -n '90,112p'
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          
-
 
       - name: Build rootless package
-      
         shell: bash
-        
         env:
-        
           THEOS: ${{ runner.temp }}/theos
-          
         run: |
-        
           set -euo pipefail
-          
           cd "$PROJECT_DIR"
-          
           make clean package THEOS="$THEOS" FINALPACKAGE=1 DEBUG=0 IGNORE_WARNINGS=1
-          
-
 
       - name: Upload Debian package
-      
         uses: actions/upload-artifact@v4
-        
         with:
-        
           name: PHBOLSONARO-rootless-package
-          
           path: extracted/**/packages/*.deb
-          
           if-no-files-found: error
-          
           retention-days: 14
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
