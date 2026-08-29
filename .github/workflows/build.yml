@@ -40,7 +40,7 @@ jobs:
           
 
 
-      - name: Extract Theos project
+      - name: Extract and patch Theos project
       
         shell: bash
         
@@ -62,9 +62,13 @@ jobs:
           
           test -n "$PROJECT_DIR" || { echo "ERRO: Makefile não encontrado"; exit 1; }
           
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          LOADVIEW="$PROJECT_DIR/Esp/LoadView.mm"
           
-          echo "Projeto encontrado em: $PROJECT_DIR"
+          test -f "$LOADVIEW" || { echo "ERRO: LoadView.mm não encontrado"; exit 1; }
+          
+          sed -i '106s/});/}];/' "$LOADVIEW"
+          
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           
 
 
@@ -100,6 +104,8 @@ jobs:
           
           retention-days: 14
           
+
+
 
 
 
