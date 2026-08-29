@@ -1,10 +1,19 @@
 name: Build Theos tweak
 
+
+
+
 on:
   workflow_dispatch:
 
+
+
+
 permissions:
   contents: read
+
+
+
 
 jobs:
   build:
@@ -30,8 +39,6 @@ jobs:
           LOADVIEW="$PROJECT_DIR/Esp/LoadView.mm"
           test -f "$LOADVIEW" || { echo "ERRO: LoadView.mm não encontrado"; exit 1; }
           sed -i '106s/});/}];/' "$LOADVIEW"
-          sed -i '/^[[:space:]]*pthread_t hacks;[[:space:]]*$/d; /^[[:space:]]*pthread_create(&hacks, NULL, hack_thread, NULL);[[:space:]]*$/d' "$LOADVIEW"
-          sed -i '99,100 s|^|// API TEST: |' "$LOADVIEW"
           echo "Patch aplicado em $LOADVIEW"
           nl -ba "$LOADVIEW" | sed -n '90,112p'
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
