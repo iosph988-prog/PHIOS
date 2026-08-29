@@ -1,46 +1,50 @@
-name: Build Theos 
+name: Build Theos tweak
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main, master]
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: macos-latest
+    # O Theos funciona em Linux; não é necessário depender de macOS-13.
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar repositório
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Preparar projeto
-        run: |
-          unzip -q Prj.zip -d project
-          find project -name Makefile -print
+      - name: Install Theos
+        uses: Randomblock1/theos-action@v1
+        with:
+          theos-dir: ${{ runner.temp }}/theos
 
-      - name: Instalar Theos
+      - name: Build rootless package
+        working-directory: Sile
+        env:
+          THEOS: ${{ runner.temp }}/theos
         run: |
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
-          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+          set -euo pipefail
+          make clean package \
+            THEOS="$THEOS" \
+            FINALPACKAGE=1 \
+            DEBUG=0 \
+            IGNORE_WARNINGS=1
 
-      - name: Instalar ldid
+      - name: Verify package
+        working-directory: Sile
         run: |
-          brew install ldid
-          echo "$(brew --prefix ldid)/bin" >> "$GITHUB_PATH"
-          which ldid
-          ldid -h
+          set -euo pipefail
+          test -n "$(find packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          find packages -maxdepth 1 -type f -name '*.deb' -print
 
-      - name: Compilar
-        run: |
-          MAKEFILE=$(find project -name Makefile | head -n 1)
-          cd "$(dirname "$MAKEFILE")"
-          make THEOS="$HOME/theos" package FINALPACKAGE=1
-
-      - name: Publicar pacote
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: Theos-Build
-          path: |
-            project/**/*.deb
-            project/**/*.dylib
+          name: PHBOLSONARO-rootless-package
+          path: Sile/packages/*.deb
+          if-no-files-found: error
+          retention-days: 14
