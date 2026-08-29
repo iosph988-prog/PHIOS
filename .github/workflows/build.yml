@@ -1,38 +1,11 @@
-name: Build Theos tweak
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Theos
-        uses: Randomblock1/theos-action@v1
-        with:
-          theos-dir: <LaTex>{{ runner.temp }}/theos        - name: Extract project         run: |           set -euo pipefail           mkdir -p extracted           unzip -q Prj-fixed.zip -d extracted           PROJECT_DIR="</LaTex>(find extracted -name Makefile -type f -printf '%h\n' | head -n 1)"
-          test -n "<LaTex>PROJECT_DIR"           echo "PROJECT_DIR=</LaTex>PROJECT_DIR" >> "<LaTex>GITHUB_ENV"           echo "Projeto encontrado em:</LaTex>PROJECT_DIR"
-
-      - name: Build rootless package
-        env:
-          THEOS: <LaTex>{{ runner.temp }}/theos         run: |           set -euo pipefail           cd "</LaTex>PROJECT_DIR"
-          make clean package \
-            THEOS="$THEOS" \
-            FINALPACKAGE=1 \
-            DEBUG=0 \
-            IGNORE_WARNINGS=1
-
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: PHBOLSONARO-rootless-package
-          path: '**/packages/*.deb'
-          if-no-files-found: error
-          retention-days: 14
+- name: Extract project
+  run: |
+    set -euo pipefail
+    mkdir -p extracted
+    unzip -q Prj-fixed.zip -d extracted
+    PROJECT_DIR="<LaTex>(find extracted -name Makefile -type f -printf '%h\n' | head -n 1)"     test -n "</LaTex>PROJECT_DIR"
+    echo "PROJECT_DIR=<LaTex>PROJECT_DIR" >> "</LaTex>GITHUB_ENV"
+    echo "Projeto encontrado em: <LaTex>PROJECT_DIR" ```  Se quiser que o workflow encontre automaticamente qualquer ZIP existente, use esta versão mais resistente:  ```yaml - name: Extract project   shell: bash   run: |     set -euo pipefail     mkdir -p extracted     ZIP_FILE="</LaTex>(find . -maxdepth 1 -type f -iname '*.zip' ! -name 'theos.zip' -printf '%f\n' | sort | head -n 1)"
+    test -n "<LaTex>ZIP_FILE" || { echo 'Nenhum ZIP encontrado'; exit 1; }     echo "Extraindo:</LaTex>ZIP_FILE"
+    unzip -q "<LaTex>ZIP_FILE" -d extracted     PROJECT_DIR="</LaTex>(find extracted -name Makefile -type f -printf '%h\n' | head -n 1)"
+    test -n "<LaTex>PROJECT_DIR" || { echo 'Makefile não encontrado dentro do ZIP'; find extracted -maxdepth 3 -type f; exit 1; }     echo "PROJECT_DIR=</LaTex>PROJECT_DIR" >> "<LaTex>GITHUB_ENV"     echo "Projeto encontrado em:</LaTex>PROJECT_DIR"
