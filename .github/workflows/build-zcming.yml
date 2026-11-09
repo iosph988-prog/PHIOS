@@ -38,6 +38,7 @@ jobs:
             -e 's/@implementation BrazilixMenu/@implementation monaMenu/' \
             -e 's/\[BrazilixMenu new\]/[monaMenu new]/' \
             "$PROJECT_DIR/Menu.mm"
+          sed -i '/^m$/d' "$PROJECT_DIR/Includes/ESP.h"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Projeto encontrado em: $PROJECT_DIR"
 
