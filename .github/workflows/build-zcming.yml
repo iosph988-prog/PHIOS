@@ -25,7 +25,7 @@ jobs:
           rm -rf extracted
           mkdir -p extracted
           unzip -q ZCMING.zip -d extracted
-          PROJECT_DIR="$(find extracted -name Makefile -type f -printf '%h\\n' | head -n 1)"
+          PROJECT_DIR="$(find extracted -name Makefile -type f -printf '%h\n' | head -n 1)"
           test -n "$PROJECT_DIR" || { echo "ERRO: Makefile não encontrado"; exit 1; }
           test -f "$PROJECT_DIR/Menu.mm" || { echo "ERRO: Menu.mm não encontrado"; exit 1; }
           # Ajusta apenas variáveis/caminhos do Makefile; o código-fonte permanece intacto.
