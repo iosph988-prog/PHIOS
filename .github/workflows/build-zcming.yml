@@ -34,6 +34,10 @@ jobs:
             -e 's/^Brazilix_CFLAGS/mona_CFLAGS/' \
             -e 's/^Brazilix_LIBRARIES/mona_LIBRARIES/' \
             "$PROJECT_DIR/Makefile"
+          sed -i \
+            -e 's/@implementation BrazilixMenu/@implementation monaMenu/' \
+            -e 's/\[BrazilixMenu new\]/[monaMenu new]/' \
+            "$PROJECT_DIR/Menu.mm"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Projeto encontrado em: $PROJECT_DIR"
 
