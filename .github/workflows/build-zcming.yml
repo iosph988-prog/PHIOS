@@ -1,0 +1,55 @@
+name: Build ZCMING Theos tweak
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Theos
+        uses: Randomblock1/theos-action@v1
+        with:
+          theos-dir: ${{ runner.temp }}/theos
+
+      - name: Extract ZCMING project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf extracted
+          mkdir -p extracted
+          unzip -q ZCMING.zip -d extracted
+          PROJECT_DIR="$(find extracted -name Makefile -type f -printf '%h\\n' | head -n 1)"
+          test -n "$PROJECT_DIR" || { echo "ERRO: Makefile não encontrado"; exit 1; }
+          test -f "$PROJECT_DIR/Menu.mm" || { echo "ERRO: Menu.mm não encontrado"; exit 1; }
+          # Ajusta apenas variáveis/caminhos do Makefile; o código-fonte permanece intacto.
+          sed -i \
+            -e 's#-ISource/Includes#-IIncludes#g' \
+            -e 's/^Brazilix_CFLAGS/mona_CFLAGS/' \
+            -e 's/^Brazilix_LIBRARIES/mona_LIBRARIES/' \
+            "$PROJECT_DIR/Makefile"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Projeto encontrado em: $PROJECT_DIR"
+
+      - name: Build Debian package
+        shell: bash
+        env:
+          THEOS: ${{ runner.temp }}/theos
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          make clean package THEOS="$THEOS" FINALPACKAGE=1 DEBUG=0 IGNORE_WARNINGS=1
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZCMING-deb
+          path: extracted/**/packages/*.deb
+          if-no-files-found: error
+          retention-days: 14
